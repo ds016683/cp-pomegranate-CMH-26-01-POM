@@ -61,9 +61,11 @@ export function ProjectPlanView() {
     try {
       const data = await fetchProjectsWithTasks();
       // Normalize: projects with no category fall into Extraneous
+      // Sub-items (has parent_id) keep their category blank — they render under their parent.
+      // Top-level items with no category fall into Extraneous.
       const normalized = data.map(p => ({
         ...p,
-        category: p.category?.trim() || 'Extraneous',
+        category: p.parent_id ? (p.category?.trim() || '') : (p.category?.trim() || 'Extraneous'),
       }));
       setProjects(normalized);
       setLastSync(new Date());
@@ -86,7 +88,7 @@ export function ProjectPlanView() {
       if (fnErr) throw new Error(fnErr.message);
       // Re-fetch the now-updated projects from Supabase
       const fresh = await fetchProjectsWithTasks();
-      setProjects(fresh.map(p => ({ ...p, category: p.category?.trim() || 'Extraneous' })));
+      setProjects(fresh.map(p => ({ ...p, category: p.parent_id ? (p.category?.trim() || '') : (p.category?.trim() || 'Extraneous') })));
       setLastSync(new Date());
       await refetchBaseballCards();
     } catch (e) {
@@ -96,9 +98,18 @@ export function ProjectPlanView() {
     }
   }, [refetchBaseballCards]);
 
-  // Group by category
+  // Build children map: parentId → sub-items
+  const childrenByParent = projects.reduce<Record<string, ProjectWithTasks[]>>((acc, p) => {
+    if (p.parent_id) {
+      if (!acc[p.parent_id]) acc[p.parent_id] = [];
+      acc[p.parent_id].push(p);
+    }
+    return acc;
+  }, {});
+
+  // Group by category — top-level items only (no parent_id)
   const grouped = CATEGORY_ORDER.reduce<Record<string, ProjectWithTasks[]>>((acc, cat) => {
-    acc[cat] = projects.filter(p => p.category === cat);
+    acc[cat] = projects.filter(p => !p.parent_id && p.category === cat);
     return acc;
   }, {});
 
@@ -143,7 +154,7 @@ export function ProjectPlanView() {
             if (items.length === 0) return null;
             const bg = GROUP_HEADER_BG[cat] ?? '#224057';
             const isCollapsed = collapsed[cat];
-            const phaseCount = items.reduce((s, p) => s + p.tasks.length, 0);
+            const phaseCount = items.reduce((s, p) => s + (childrenByParent[p.id]?.length ?? 0), 0);
             return (
               <div key={cat}>
                 {/* Group header */}
@@ -153,6 +164,7 @@ export function ProjectPlanView() {
                   {isCollapsed ? <ChevronRight className="h-4 w-4 text-white/70" /> : <ChevronDown className="h-4 w-4 text-white/70" />}
                   <span className="text-sm font-bold text-white">{cat}</span>
                   <span className="ml-auto rounded-full bg-white/20 px-2 py-0.5 text-xs text-white">{items.length} projects · {phaseCount} phases</span>
+                {/* phaseCount now counts Notion sub-items */}
                 </button>
 
                 {!isCollapsed && (
@@ -170,6 +182,8 @@ export function ProjectPlanView() {
 
                     {items.map(project => {
                       const isExpanded = expandedItems.has(project.id);
+                      const subItems = childrenByParent[project.id] ?? [];
+                      const hasChildren = subItems.length > 0;
                       return (
                         <div key={project.id} className="border-b border-gray-50 last:border-0">
                           {/* Parent row */}
@@ -177,38 +191,34 @@ export function ProjectPlanView() {
                             style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr' }}
                             onClick={() => setExpandedItems(s => { const n = new Set(s); n.has(project.id) ? n.delete(project.id) : n.add(project.id); return n; })}>
                             <div className="flex items-center gap-2 min-w-0">
-                              {project.tasks.length > 0
+                              {hasChildren
                                 ? (isExpanded ? <ChevronDown className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />)
                                 : <span className="w-3.5" />}
                               <span className="truncate text-sm font-medium text-gray-900">{project.name}</span>
-                              {project.tasks.length > 0 && (
-                                <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500 flex-shrink-0">{project.tasks.length}</span>
+                              {hasChildren && (
+                                <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500 flex-shrink-0">{subItems.length}</span>
                               )}
                             </div>
                             <div><span className={`rounded px-2 py-0.5 text-xs font-medium ${statusStyle(project.mma_status)}`}>{project.mma_status || '—'}</span></div>
-                            <div><PriorityChip priority={project.priority} /></div>
+                            <div><PriorityChip priority={project.mma_priority} /></div>
                             <div className="truncate text-xs text-gray-600">{project.mma_accountable || '—'}</div>
                             <div className="text-xs text-gray-500">{fmtDate(project.start_date)}</div>
                             <div className="text-xs text-gray-500">{fmtDate(project.target_date)}</div>
                           </div>
 
-                          {/* Phase rows */}
-                          {isExpanded && project.tasks.map(task => (
-                            <div key={task.id} className="grid items-center pl-10 pr-4 py-2 bg-gray-50/60 border-t border-gray-100"
+                          {/* Notion sub-items */}
+                          {isExpanded && subItems.map(child => (
+                            <div key={child.id} className="grid items-center pl-10 pr-4 py-2 bg-gray-50/60 border-t border-gray-100"
                               style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr' }}>
                               <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-gray-300 text-xs">└</span>
-                                <span className={`truncate text-xs ${task.done ? 'line-through text-gray-400' : 'text-gray-700'}`}>{task.task_name || task.text}</span>
+                                <span className="text-gray-300 text-xs flex-shrink-0">└</span>
+                                <span className="truncate text-xs text-gray-700">{child.name}</span>
                               </div>
-                              <div>
-                                <span className={`rounded px-1.5 py-0.5 text-[10px] ${task.done ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                  {task.done ? 'Complete' : 'In Progress'}
-                                </span>
-                              </div>
-                              <div />
-                              <div className="truncate text-xs text-gray-500">{task.assigned_to || '—'}</div>
-                              <div className="text-xs text-gray-400">{fmtDate(task.start_date)}</div>
-                              <div className="text-xs text-gray-400">{fmtDate(task.due_date)}</div>
+                              <div><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${statusStyle(child.mma_status)}`}>{child.mma_status || '—'}</span></div>
+                              <div><PriorityChip priority={child.mma_priority} /></div>
+                              <div className="truncate text-xs text-gray-500">{child.mma_accountable || child.mma_responsible || '—'}</div>
+                              <div className="text-xs text-gray-400">{fmtDate(child.start_date)}</div>
+                              <div className="text-xs text-gray-400">{fmtDate(child.target_date)}</div>
                             </div>
                           ))}
                         </div>

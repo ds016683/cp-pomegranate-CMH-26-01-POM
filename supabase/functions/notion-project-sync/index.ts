@@ -128,8 +128,13 @@ function mapProject(page: any): Record<string, any> {
   const priority = (getSelect(p, "Priority") || getSelect(p, "MMA Priority") || "medium").toLowerCase();
   const allowedPriority = ["low", "medium", "high", "urgent"].includes(priority) ? priority : "medium";
 
+  // Parent item relation — first related page ID, if any
+  const parentRelations = p["Parent item"]?.relation ?? [];
+  const parentId = parentRelations.length > 0 ? parentRelations[0].id : null;
+
   return {
     id: page.id,
+    parent_id: parentId,
     name: getTitle(p, "Project") || getTitle(p, "Name") || getTitle(p, "Title") || "(untitled)",
     description: getRichText(p, "Description") || getRichText(p, "Notes") || "",
     status,

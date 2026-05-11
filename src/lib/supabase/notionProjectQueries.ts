@@ -2,6 +2,7 @@ import { supabase } from './client';
 
 export interface SupabaseProject {
   id: string;
+  parent_id: string | null;
   name: string;
   description: string;
   status: string;

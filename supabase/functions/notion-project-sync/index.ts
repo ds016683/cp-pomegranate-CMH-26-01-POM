@@ -187,17 +187,47 @@ Deno.serve(async (req) => {
     // 1. Pull all pages from Notion project-plan DB
     const pages = await notionQueryAll(NOTION_PROJECT_DB_ID, notionToken);
 
-    // 2. Map → project rows
-    const projectRows = pages.map(mapProject);
+    // 2. Build rank map so dashboard order = Notion order exactly.
+    //    - Top-level items: their position in the API response (* 1000 for spacing)
+    //    - Sub-items: rank derived from their position in the parent's Sub-item
+    //      relation array, which is the authoritative Notion-ordered list.
+    const rankMap = new Map<string, number>();
 
-    // 3. Upsert projects
+    // First pass: assign top-level ranks
+    let topLevelRank = 0;
+    for (const page of pages) {
+      const parentRels = page.properties["Parent item"]?.relation ?? [];
+      if (parentRels.length === 0) {
+        rankMap.set(page.id, topLevelRank * 1000);
+        topLevelRank++;
+      }
+    }
+
+    // Second pass: assign sub-item ranks from each parent's Sub-item array
+    for (const page of pages) {
+      const subItemRels: Array<{ id: string }> = page.properties["Sub-item"]?.relation ?? [];
+      if (subItemRels.length > 0) {
+        const parentRank = rankMap.get(page.id) ?? 0;
+        subItemRels.forEach((rel, idx) => {
+          rankMap.set(rel.id, parentRank + idx + 1);
+        });
+      }
+    }
+
+    // 3. Map → project rows, injecting manual_rank from rankMap
+    const projectRows = pages.map((page) => ({
+      ...mapProject(page),
+      manual_rank: rankMap.get(page.id) ?? 99999,
+    }));
+
+    // 4. Upsert projects
     const { error: projErr } = await db
       .from("projects")
       .upsert(projectRows, { onConflict: "id", ignoreDuplicates: false });
 
     if (projErr) throw new Error(`projects upsert: ${projErr.message}`);
 
-    // 4. Delete orphaned projects — rows in Supabase whose ID is no longer in Notion.
+    // 5. Delete orphaned projects — rows in Supabase whose ID is no longer in Notion.
     //    Fetch existing IDs, diff against current Notion set, delete the delta.
     const notionIdSet = new Set(projectRows.map((p) => p.id));
     const { data: existingRows } = await db.from("projects").select("id");

@@ -185,17 +185,28 @@ Deno.serve(async (req) => {
     // 2. Map → project rows
     const projectRows = pages.map(mapProject);
 
-    // 3. Upsert projects (ignoreDuplicates=false so updates apply)
-    //    We use onConflict on id and skip updating manual_rank/pinned
-    //    to preserve user-set ordering.
+    // 3. Upsert projects
     const { error: projErr } = await db
       .from("projects")
-      .upsert(projectRows, {
-        onConflict: "id",
-        ignoreDuplicates: false,
-      });
+      .upsert(projectRows, { onConflict: "id", ignoreDuplicates: false });
 
     if (projErr) throw new Error(`projects upsert: ${projErr.message}`);
+
+    // 4. Delete orphaned projects — rows in Supabase whose ID is no longer in Notion.
+    //    Fetch existing IDs, diff against current Notion set, delete the delta.
+    const notionIdSet = new Set(projectRows.map((p) => p.id));
+    const { data: existingRows } = await db.from("projects").select("id");
+    const orphanIds = (existingRows ?? [])
+      .map((r: any) => r.id)
+      .filter((id: string) => !notionIdSet.has(id));
+
+    if (orphanIds.length > 0) {
+      const { error: delErr } = await db
+        .from("projects")
+        .delete()
+        .in("id", orphanIds);
+      if (delErr) console.error("orphan delete error:", delErr.message);
+    }
 
     // 4. For each page, fetch child blocks as tasks
     const taskRows: Record<string, any>[] = [];

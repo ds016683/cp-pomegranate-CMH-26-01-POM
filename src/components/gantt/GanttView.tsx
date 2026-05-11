@@ -61,22 +61,9 @@ export function GanttView() {
     setSyncing(true);
     try {
       const { supabase } = await import('../../lib/supabase/client');
-      const triggerTime = new Date();
-      await supabase.from('region_data').update({ updated_at: triggerTime.toISOString() }).eq('region_id', 1);
-      const deadline = Date.now() + 45000;
-      let done = false;
-      while (Date.now() < deadline && !done) {
-        await new Promise(r => setTimeout(r, 2500));
-        const { data } = await supabase.from('region_data').select('v7_coverage').eq('region_id', 0).single();
-        if (data?.v7_coverage) {
-          try {
-            const status = JSON.parse(data.v7_coverage as string);
-            const completed = new Date(status.sync_completed);
-            const started = new Date(status.sync_started);
-            if (completed > started && completed >= triggerTime) done = true;
-          } catch { /* continue */ }
-        }
-      }
+      // Invoke edge function — runs server-side, no daemon required
+      const { error: fnErr } = await supabase.functions.invoke('notion-project-sync');
+      if (fnErr) throw new Error(fnErr.message);
       const fresh = await fetchProjectsWithTasks();
       setProjects(fresh);
       setLastSync(new Date());

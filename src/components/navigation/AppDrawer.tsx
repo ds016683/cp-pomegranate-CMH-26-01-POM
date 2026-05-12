@@ -1,245 +1,107 @@
-import { useState, useEffect } from 'react';
-import {
-  LayoutGrid, LogOut, Menu, X,
-  GanttChart, Map, Network, FlaskConical, BarChart2,
-  ChevronDown, ChevronRight, FileText, Activity, Handshake, NotebookPen
-} from 'lucide-react';
-import mmaLogo from '../../assets/mma-logo.png';
+import { useState } from 'react';
+import { LayoutGrid, LogOut, Menu, X, GanttChart, FileText } from 'lucide-react';
 import thsLogo from '../../assets/ths-logo.png';
 import { useAuth } from '../../contexts/AuthContext';
 
-export type AppView =
-  | 'tracker'
-  | 'project-plan'
-  | 'timeline'
-  | 'data-intelligence'
-  | 'reporting-queries'
-  | 'regional-map'
-  | 'payer-networks'
-  | 'payer-mrf-pipeline'
-  | 'hospital-mrf-pipeline'
-  | 'hospital-coverage'
-  | 'promise-health-plan'
-  | 'call-notes';
+export type AppView = 'project-plan' | 'tracker' | 'timeline';
 
 interface NavItem {
   id: AppView;
   label: string;
   icon: React.ElementType;
-  badge?: string;
-  href?: string;
 }
 
-interface NavGroup {
-  label: string;
-  items: NavItem[];
-  defaultOpen?: boolean;
-}
-
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: 'Engagement Manager',
-    defaultOpen: true,
-    items: [
-      { id: 'project-plan', label: 'Project Plan',   icon: FileText },
-      { id: 'timeline',     label: 'Gantt Chart',    icon: GanttChart },
-      { id: 'tracker',      label: 'Baseball Cards', icon: LayoutGrid },
-      { id: 'call-notes',   label: 'Call Notes',     icon: NotebookPen },
-    ],
-  },
-  {
-    label: 'Engagement Documentation',
-    defaultOpen: false,
-    items: [],
-  },
-  {
-    label: 'Network Navigator Deployment',
-    defaultOpen: true,
-    items: [
-      { id: 'data-intelligence',  label: 'Data Intelligence',  icon: FlaskConical },
-      { id: 'reporting-queries',  label: 'Reporting Queries',  icon: BarChart2 },
-    ],
-  },
-  {
-    label: 'Region Engagement',
-    defaultOpen: true,
-    items: [
-      { id: 'regional-map', label: 'Regional Map', icon: Map },
-    ],
-  },
-  {
-    label: 'Payer MRF Processing Details',
-    defaultOpen: true,
-    items: [
-      { id: 'payer-networks',      label: 'Payer Networks',    icon: Network },
-      { id: 'payer-mrf-pipeline',  label: 'Payer MRF Pipeline', icon: BarChart2, badge: 'Soon' },
-    ],
-  },
-  {
-    label: 'Hospital MRF Processing Details',
-    defaultOpen: true,
-    items: [
-      { id: 'hospital-mrf-pipeline', label: 'Hospital MRF Pipeline', icon: Activity },
-      { id: 'hospital-coverage',     label: 'Hospital Coverage',      icon: Map },
-    ],
-  },
-  {
-    label: 'Joint Project Work',
-    defaultOpen: true,
-    items: [
-      { id: 'promise-health-plan', label: '1. Promise Health Plan - Rate Analysis', icon: Handshake, href: 'https://promise-rate-intelligence.vercel.app' },
-    ],
-  },
+const NAV_ITEMS: NavItem[] = [
+  { id: 'project-plan', label: 'Project Plan',   icon: FileText },
+  { id: 'timeline',     label: 'Gantt Chart',    icon: GanttChart },
+  { id: 'tracker',      label: 'Baseball Cards', icon: LayoutGrid },
 ];
 
-interface AppDrawerProps {
-  activeView: AppView;
-  onViewChange: (view: AppView) => void;
+// Pomegranate SVG icon
+function PomegranateIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 40 40" style={{ width: size, height: size }} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="20" cy="22" r="14" fill="#8B1E2D" />
+      <circle cx="20" cy="22" r="10" fill="#c0392b" />
+      <circle cx="17" cy="20" r="2" fill="#fde8e8" />
+      <circle cx="23" cy="20" r="2" fill="#fde8e8" />
+      <circle cx="20" cy="25" r="2" fill="#fde8e8" />
+      <circle cx="15" cy="25" r="1.5" fill="#fde8e8" />
+      <circle cx="25" cy="25" r="1.5" fill="#fde8e8" />
+      <path d="M14 11 Q16 6 20 8 Q24 6 26 11 Q23 9 20 10 Q17 9 14 11Z" fill="#5a1020" />
+    </svg>
+  );
 }
 
-export function AppDrawer({ activeView, onViewChange }: AppDrawerProps) {
-  const { signOut } = useAuth();
-  const [open, setOpen] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
-    NAV_GROUPS.forEach(g => { initial[g.label] = g.defaultOpen ?? true; });
-    return initial;
-  });
-
-  useEffect(() => {
-    const onResize = () => {
-      const desktop = window.innerWidth >= 1024;
-      setIsDesktop(desktop);
-      if (!desktop) setOpen(false);
-    };
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
-
-  const drawerVisible = open || isDesktop;
-
-  const handleNavClick = (item: NavItem) => {
-    if (item.href) {
-      window.open(item.href, '_blank', 'noopener,noreferrer');
-    } else {
-      onViewChange(item.id);
-    }
-    if (!isDesktop) setOpen(false);
-  };
-
-  const toggleGroup = (label: string) => {
-    setOpenGroups(prev => ({ ...prev, [label]: !prev[label] }));
-  };
+export function AppDrawer({
+  activeView,
+  onViewChange,
+}: {
+  activeView: AppView;
+  onViewChange: (v: AppView) => void;
+}) {
+  const { user, signOut } = useAuth();
+  const [open, setOpen] = useState(true);
 
   return (
     <>
-      {/* Hamburger */}
-      {!isDesktop && (
-        <button
-          onClick={() => setOpen(!open)}
-          className="fixed top-3.5 left-3.5 z-[1000] flex h-[42px] w-[42px] items-center justify-center rounded-[10px] border-none bg-[#001A41] text-white shadow-lg transition-all hover:bg-[#003366] hover:scale-105"
-          aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-      )}
-
-      {/* Overlay */}
-      {open && !isDesktop && (
-        <div className="fixed inset-0 z-[998] bg-[#001A41]/45" onClick={() => setOpen(false)} />
-      )}
-
-      {/* Drawer */}
-      <aside
-        className={`fixed top-0 left-0 z-[999] flex h-screen w-[280px] flex-col shadow-[4px_0_24px_rgba(0,0,0,0.3)] transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-          drawerVisible ? 'translate-x-0' : '-translate-x-full'
-        }`}
-        style={{ background: 'linear-gradient(180deg, #001A41 0%, #00111F 100%)' }}
+      {/* Mobile toggle */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="fixed left-3 top-3 z-50 rounded-lg bg-[#8B1E2D] p-1.5 text-white shadow md:hidden"
       >
-        {/* Logo */}
-        <div className="border-b border-white/10 px-5 py-5 text-center">
-          <div className="flex items-center justify-center gap-3">
-            <img src={mmaLogo} alt="Marsh McLennan Agency" className="h-7 w-auto brightness-0 invert" />
-            <div className="h-7 w-px bg-white/20" />
-            <img src={thsLogo} alt="Third Horizon" className="h-7 w-auto brightness-0 invert" />
+        {open ? <X size={18} /> : <Menu size={18} />}
+      </button>
+
+      <aside
+        className={`${open ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-40 flex w-56 flex-col bg-[#16232f] transition-transform duration-200 md:relative md:translate-x-0`}
+      >
+        {/* Header */}
+        <div className="flex flex-col items-center gap-2 border-b border-white/10 px-4 py-5">
+          <PomegranateIcon size={36} />
+          <div className="text-center">
+            <p className="text-xs font-bold leading-tight text-white">Pomegranate Market</p>
+            <p className="text-[10px] text-white/40">× Third Horizon</p>
           </div>
         </div>
 
-        {/* Nav groups */}
-        <nav className="flex flex-1 flex-col overflow-y-auto py-3">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.label} className="mb-1">
-              {/* Group header */}
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto p-3">
+          <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/30">
+            Engagement
+          </p>
+          {NAV_ITEMS.map(item => {
+            const Icon = item.icon;
+            const active = activeView === item.id;
+            return (
               <button
-                onClick={() => toggleGroup(group.label)}
-                className="flex w-full items-center justify-between px-5 py-2 text-left transition-colors hover:bg-white/5"
+                key={item.id}
+                onClick={() => { onViewChange(item.id); setOpen(false); }}
+                className={`mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
+                  active
+                    ? 'bg-[#8B1E2D] font-semibold text-white'
+                    : 'text-white/60 hover:bg-white/5 hover:text-white'
+                }`}
               >
-                <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                  {group.label}
-                </span>
-                {openGroups[group.label]
-                  ? <ChevronDown className="h-3 w-3 text-white/30" />
-                  : <ChevronRight className="h-3 w-3 text-white/30" />
-                }
+                <Icon size={16} />
+                {item.label}
               </button>
-
-              {/* Group items */}
-              {openGroups[group.label] && (
-                <div className="mb-1">
-                  {group.items.length === 0 ? (
-                    <p className="px-5 py-2 text-xs italic text-white/20">Coming soon</p>
-                  ) : (
-                    group.items.map((item) => {
-                      const Icon = item.icon;
-                      const isActive = activeView === item.id;
-                      const isDisabled = item.badge === 'Soon';
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => !isDisabled && handleNavClick(item)}
-                          disabled={isDisabled}
-                          className={`flex w-full items-center gap-3 border-none bg-transparent px-5 py-3 text-left font-medium transition-all ${
-                            isActive
-                              ? 'border-l-[3px] border-l-[#009DE0] bg-[#009DE0]/20 pl-[calc(1.25rem-3px)] text-[#009DE0]'
-                              : isDisabled
-                              ? 'cursor-not-allowed text-white/25'
-                              : 'text-white/65 hover:bg-white/[0.08] hover:text-white'
-                          }`}
-                          style={{ fontFamily: 'inherit', fontSize: '0.88rem' }}
-                        >
-                          <Icon className="h-[17px] w-[17px] flex-shrink-0" />
-                          <span className="flex-1">{item.label}</span>
-                          {item.badge && (
-                            <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/40">
-                              {item.badge}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-white/10 px-5 py-3">
+        <div className="border-t border-white/10 p-4">
+          <img src={thsLogo} alt="Third Horizon Strategies" className="mb-3 h-5 w-auto brightness-0 invert opacity-50" />
+          <p className="mb-2 truncate text-[10px] text-white/30">{user}</p>
           <button
             onClick={signOut}
-            className="flex w-full items-center gap-3 rounded-md border-none bg-transparent px-2 py-2 text-left text-[0.85rem] text-white/50 transition-colors hover:text-red-400"
-            style={{ fontFamily: 'inherit' }}
+            className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70"
           >
-            <LogOut className="h-4 w-4" />
-            Sign out
+            <LogOut size={13} /> Sign out
           </button>
         </div>
       </aside>
-
-      {/* Spacer */}
-      {isDesktop && <div className="w-[280px] flex-shrink-0" />}
     </>
   );
 }

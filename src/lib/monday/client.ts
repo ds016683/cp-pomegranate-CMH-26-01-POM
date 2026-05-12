@@ -1,87 +1,65 @@
-// Monday.com API client for MMA Tracker
-// Board ID: 18409785203
+// Monday.com API client — Pomegranate Market
+// Board ID: 18411269588  (READ-ONLY — never write to this board)
+import { POMEGRANATE_BOARD_ID, COLS, STATUS_NORM } from './columnMap';
 
 const MONDAY_API_URL = 'https://api.monday.com/v2';
-const BOARD_ID = '18409785203';
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-// Column ID map (canonical order set 2026-04-23)
-export const MONDAY_COLS = {
-  name:            'name',
-  accountable:     'text_mm2pfpcj',
-  responsible:     'text_mm2pdjpd',  // text version (not people col)
-  startDate:       'date_mm2pfvqb',
-  targetDate:      'date4',
-  description:     'long_text_mm2p3103',
-  status:          'status',
-  stakes:          'text_mm2p3ea4',
-  contributor:     'text_mm2pza0c',
-  informed:        'text_mm2p5e89',
-  contractElement: 'text_mm2ppz9v',
-  comments:        'text_mm2pxwcn',
-};
-
-export const GROUP_ORDER = [
-  { id: 'group_title',      label: 'Production Priorities' },
-  { id: 'group_mm2padc3',   label: 'Data Enhancements (Schedule E)' },
-  { id: 'group_mm2pm585',   label: 'Innovation Roadmap' },
-  { id: 'group_mm2pgtvh',   label: 'Completed' },
-  { id: 'group_mm2pm9jn',   label: 'Extraneous' },
-];
-
-export interface MondaySubitem {
-  id: string;
-  name: string;
-  responsible: string;
-  startDate: string;
-  endDate: string;
-  description: string;
-  status: string;
-}
-
-export interface MondayItem {
+export interface PomegranateItem {
   id: string;
   name: string;
   groupId: string;
   groupTitle: string;
-  accountable: string;
-  responsible: string;
-  startDate: string;
-  targetDate: string;
-  description: string;
-  status: string;
-  stakes: string;
-  contributor: string;
-  informed: string;
-  contractElement: string;
-  comments: string;
-  subitems: MondaySubitem[];
+  owner: string;
+  statusRaw: string;
+  status: string;      // normalized: DONE | IN_PROGRESS | ONGOING | BLOCKED | NOT_STARTED
+  startDate: string;   // ISO date or ''
+  endDate: string;     // ISO date or ''
+  notes: string;
+  deliverable: string; // '' | 'Milestone'
 }
 
-function getColText(columnValues: { id: string; text: string }[], colId: string): string {
+interface CacheEntry {
+  data: PomegranateItem[];
+  fetchedAt: number;
+}
+
+let cache: CacheEntry | null = null;
+
+function parseTimeline(val: string): { start: string; end: string } {
+  try {
+    const parsed = JSON.parse(val);
+    return { start: parsed.from ?? '', end: parsed.to ?? '' };
+  } catch {
+    return { start: '', end: '' };
+  }
+}
+
+function getColText(columnValues: { id: string; text: string; value: string }[], colId: string): string {
   return columnValues.find(cv => cv.id === colId)?.text ?? '';
 }
+function getColValue(columnValues: { id: string; text: string; value: string }[], colId: string): string {
+  return columnValues.find(cv => cv.id === colId)?.value ?? '';
+}
 
-export async function fetchMondayBoard(): Promise<MondayItem[]> {
-  // We call our Supabase edge function proxy to avoid CORS + keep API key server-side
-  // For now, use the direct API with the key embedded (client-side, acceptable for private app)
+export async function fetchPomegranateBoard(forceRefresh = false): Promise<PomegranateItem[]> {
+  if (!forceRefresh && cache && Date.now() - cache.fetchedAt < CACHE_TTL_MS) {
+    return cache.data;
+  }
+
   const apiKey = import.meta.env.VITE_MONDAY_API_KEY;
   if (!apiKey) {
-    console.warn('VITE_MONDAY_API_KEY not set — Monday sync disabled');
+    console.warn('VITE_MONDAY_API_KEY not set — Monday data unavailable');
     return [];
   }
 
   const query = `{
-    boards(ids: [${BOARD_ID}]) {
-      groups { id title }
+    boards(ids: [${POMEGRANATE_BOARD_ID}]) {
       items_page(limit: 100) {
         items {
           id name
           group { id title }
-          column_values { id text }
-          subitems {
-            id name
-            column_values { id text }
-          }
+          column_values { id text value }
         }
       }
     }
@@ -106,42 +84,36 @@ export async function fetchMondayBoard(): Promise<MondayItem[]> {
   }
 
   const board = data.data.boards[0];
-  const items: MondayItem[] = board.items_page.items.map((item: {
-    id: string; name: string;
+  const items: PomegranateItem[] = board.items_page.items.map((item: {
+    id: string;
+    name: string;
     group: { id: string; title: string };
-    column_values: { id: string; text: string }[];
-    subitems: { id: string; name: string; column_values: { id: string; text: string }[] }[];
+    column_values: { id: string; text: string; value: string }[];
   }) => {
     const cv = item.column_values;
-    const subitems: MondaySubitem[] = (item.subitems ?? []).map(sub => ({
-      id: sub.id,
-      name: sub.name,
-      responsible:  sub.column_values.find(c => c.id === 'text_mm2p3yp')?.text ?? '',
-      startDate:    sub.column_values.find(c => c.id === 'date_mm2pn9z9')?.text ?? '',
-      endDate:      sub.column_values.find(c => c.id === 'date4')?.text ?? '',
-      description:  sub.column_values.find(c => c.id === 'text_mm2pxh7m')?.text ?? '',
-      status:       sub.column_values.find(c => c.id === 'status')?.text ?? '',
-    }));
+    const timelineVal = getColValue(cv, COLS.date);
+    const { start, end } = parseTimeline(timelineVal);
+    const statusRaw = getColText(cv, COLS.status);
 
     return {
-      id:              item.id,
-      name:            item.name,
-      groupId:         item.group.id,
-      groupTitle:      item.group.title,
-      accountable:     getColText(cv, MONDAY_COLS.accountable),
-      responsible:     getColText(cv, MONDAY_COLS.responsible),
-      startDate:       getColText(cv, MONDAY_COLS.startDate),
-      targetDate:      getColText(cv, MONDAY_COLS.targetDate),
-      description:     getColText(cv, MONDAY_COLS.description),
-      status:          getColText(cv, MONDAY_COLS.status),
-      stakes:          getColText(cv, MONDAY_COLS.stakes),
-      contributor:     getColText(cv, MONDAY_COLS.contributor),
-      informed:        getColText(cv, MONDAY_COLS.informed),
-      contractElement: getColText(cv, MONDAY_COLS.contractElement),
-      comments:        getColText(cv, MONDAY_COLS.comments),
-      subitems,
+      id:           item.id,
+      name:         item.name,
+      groupId:      item.group.id,
+      groupTitle:   item.group.title,
+      owner:        getColText(cv, COLS.person),
+      statusRaw,
+      status:       STATUS_NORM[statusRaw] ?? 'NOT_STARTED',
+      startDate:    start,
+      endDate:      end,
+      notes:        getColText(cv, COLS.notes),
+      deliverable:  getColText(cv, COLS.deliverable),
     };
   });
 
+  cache = { data: items, fetchedAt: Date.now() };
   return items;
+}
+
+export function clearCache() {
+  cache = null;
 }

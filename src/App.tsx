@@ -1,90 +1,85 @@
-// trigger: monday-api-key-baked
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ProjectsProvider, useProjects } from './contexts/ProjectsContext';
+import { PomegranateProvider } from './contexts/PomegranateContext';
 import { AuthPage } from './components/auth/AuthPage';
-import { BaseballCardLayout } from './components/baseball-card/BaseballCardLayout';
-import { AppDrawer } from './components/navigation/AppDrawer';
-import type { AppView } from './components/navigation/AppDrawer';
-import { DataIntelligenceView } from './components/starset/DataIntelligenceView';
-import { ReportingQueriesView } from './components/starset/ReportingQueriesView';
-import { RegionalMapView } from './components/starset/RegionalMapView';
-import { ProductionNetworksView } from './components/starset/ProductionNetworksView';
-import { HaikuAssistant } from './components/ai/HaikuAssistant';
 import { ProjectPlanView } from './components/project-plan/ProjectPlanView';
-import { PromiseHealthPlanView } from './components/promise/PromiseHealthPlanView';
-import { HospitalCoverageView } from './components/hospitals/HospitalCoverageView';
-import { ProductionProgressView } from './components/production/ProductionProgressView';
-import { CallNotesView } from './components/call-notes/CallNotesView';
+import { PomegranateCardView } from './components/baseball-card/PomegranateCardView';
+import { PomGanttView } from './components/gantt/PomGanttView';
 
-function AppContent() {
-  const { user, loading } = useAuth();
-  const [activeView, setActiveViewRaw] = useState<AppView>(
-    () => (localStorage.getItem('mma-active-view') as AppView) ?? 'tracker'
-  );
-  const setActiveView = (view: AppView) => {
-    setActiveViewRaw(view);
-    localStorage.setItem('mma-active-view', view);
-  };;
+type AppView = 'plan' | 'cards' | 'gantt';
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-mma-light-bg">
-        <div className="text-sm text-mma-blue-gray">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <AuthPage />;
-  }
-
+function PomegranateIcon({ size = 24 }: { size?: number }) {
   return (
-    <ProjectsProvider>
-      <AppInner activeView={activeView} setActiveView={setActiveView} />
-    </ProjectsProvider>
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="20" cy="22" r="14" fill="url(#pomAppGrad)" />
+      <ellipse cx="14" cy="17" rx="3" ry="4" fill="#C13B4A" opacity="0.7"/>
+      <ellipse cx="20" cy="14" rx="3" ry="4" fill="#C13B4A" opacity="0.7"/>
+      <ellipse cx="26" cy="17" rx="3" ry="4" fill="#C13B4A" opacity="0.7"/>
+      <path d="M17 8 Q20 4 23 8" stroke="#5C3A1E" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <path d="M20 4 L20 8" stroke="#2D7A2D" strokeWidth="2" strokeLinecap="round"/>
+      <defs>
+        <radialGradient id="pomAppGrad" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" stopColor="#C13B4A"/>
+          <stop offset="100%" stopColor="#5C0F1A"/>
+        </radialGradient>
+      </defs>
+    </svg>
   );
 }
 
-function AppInner({
-  activeView,
-  setActiveView,
-}: {
-  activeView: AppView;
-  setActiveView: (v: AppView) => void;
-}) {
-  const { projects } = useProjects();
+const NAV_ITEMS: { id: AppView; label: string }[] = [
+  { id: 'plan',  label: 'Project Plan' },
+  { id: 'cards', label: 'Baseball Cards' },
+  { id: 'gantt', label: 'Gantt' },
+];
+
+function AppContent() {
+  const { user, signOut } = useAuth();
+  const [view, setView] = useState<AppView>('plan');
+
+  if (!user) return <AuthPage />;
 
   return (
-    <div className="flex min-h-screen bg-mma-light-bg">
-      <AppDrawer activeView={activeView} onViewChange={setActiveView} />
-      <main className="min-h-screen flex-1 transition-[margin] duration-300">
-        {activeView === 'tracker' && (
-          <div className="p-4 sm:p-6">
-            <BaseballCardLayout
-              onSwitchToGantt={() => setActiveView('timeline')}
-            />
+    <div className="min-h-screen bg-[#0d0a0b] text-white">
+      <header className="border-b border-white/10 bg-[#120810]">
+        <div className="flex items-center justify-between px-6 py-3">
+          <div className="flex items-center gap-3">
+            <PomegranateIcon size={28} />
+            <div>
+              <h1 className="text-sm font-bold text-white">Pomegranate Market × Third Horizon</h1>
+              <p className="text-[10px] text-white/30">CMH-26-01-POM · Food is Medicine Strategy</p>
+            </div>
           </div>
-        )}
-        {activeView === 'project-plan' && <ProjectPlanView />}
-        {activeView === 'timeline' && (
-          <div className="p-4 sm:p-6">
-            <BaseballCardLayout
-              onSwitchToGantt={() => setActiveView('timeline')}
-              forceView="gantt"
-            />
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-white/30">{user}</span>
+            <button
+              onClick={signOut}
+              className="rounded-lg border border-white/10 px-3 py-1 text-xs text-white/40 hover:text-white/70 transition"
+            >Sign out</button>
           </div>
-        )}
-        {activeView === 'data-intelligence' && <DataIntelligenceView />}
-        {activeView === 'reporting-queries' && <ReportingQueriesView />}
-        {activeView === 'regional-map' && <RegionalMapView />}
-        {activeView === 'payer-networks' && <ProductionNetworksView />}
-        {activeView === 'hospital-mrf-pipeline' && <ProductionProgressView />}
-        {activeView === 'hospital-coverage' && <HospitalCoverageView />}
-        {activeView === 'promise-health-plan' && <PromiseHealthPlanView />}
-        {activeView === 'call-notes' && <CallNotesView />}
+        </div>
+        <nav className="flex gap-0 border-t border-white/5 px-6">
+          {NAV_ITEMS.map(n => (
+            <button
+              key={n.id}
+              onClick={() => setView(n.id)}
+              className={`px-4 py-2.5 text-xs font-semibold transition border-b-2 ${
+                view === n.id
+                  ? 'border-[#8B1E2D] text-white'
+                  : 'border-transparent text-white/40 hover:text-white/70'
+              }`}
+            >{n.label}</button>
+          ))}
+        </nav>
+      </header>
+
+      <main className="max-w-7xl mx-auto">
+        <PomegranateProvider>
+          {view === 'plan'  && <ProjectPlanView />}
+          {view === 'cards' && <PomegranateCardView />}
+          {view === 'gantt' && <PomGanttView />}
+        </PomegranateProvider>
       </main>
-      <HaikuAssistant projects={projects} />
     </div>
   );
 }
@@ -96,4 +91,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-

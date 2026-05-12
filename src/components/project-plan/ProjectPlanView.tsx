@@ -1,236 +1,164 @@
-import { useState, useEffect, useCallback } from 'react';
-import { ChevronDown, ChevronRight, RefreshCw, ExternalLink, AlertCircle } from 'lucide-react';
-import { fetchProjectsWithTasks, type ProjectWithTasks } from '../../lib/supabase/notionProjectQueries';
-import { useProjects } from '../../contexts/ProjectsContext';
+import { useState } from 'react';
+import { ChevronDown, ChevronRight, RefreshCw, ExternalLink } from 'lucide-react';
+import { usePomegranate } from '../../contexts/PomegranateContext';
+import { GROUPS, GROUP_COLORS, STATUS_COLORS } from '../../lib/monday/columnMap';
 
-const NOTION_DB_URL = 'https://www.notion.so/34f750fa613d811d9455c9d4916b8483';
-
-const CATEGORY_ORDER = [
-  'Production Priorities',
-  'Data Enhancements (Schedule E)',
-  'Innovation Roadmap',
-  'Completed',
-  'Extraneous',
-];
-
-const GROUP_HEADER_BG: Record<string, string> = {
-  'Production Priorities':          '#224057',
-  'Data Enhancements (Schedule E)': '#234D8B',
-  'Innovation Roadmap':             '#b8972e',
-  'Completed':                      '#16a34a',
-  'Extraneous':                     '#9ca3af',
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  'In Progress':  'bg-[#fdab3d] text-white',
-  'Not Started':  'bg-gray-200 text-gray-500',
-  'Blocked':      'bg-[#df2f4a] text-white',
-  'Complete':     'bg-[#00c875] text-white',
-  '':             'bg-gray-100 text-gray-400',
-};
-
-function statusStyle(s: string) { return STATUS_STYLES[s] ?? 'bg-gray-100 text-gray-500'; }
+const BOARD_URL = 'https://thirdhorizonstrategies.monday.com/boards/18411269588';
 
 function fmtDate(d: string | null | undefined) {
   if (!d) return '—';
-  try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }); }
-  catch { return d; }
+  try {
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+  } catch { return d; }
 }
 
-function PriorityChip({ priority }: { priority: string }) {
-  const color = priority === 'High' ? 'bg-red-50 text-red-700 border-red-200'
-    : priority === 'Medium' ? 'bg-amber-50 text-amber-700 border-amber-200'
-    : priority === 'Low' ? 'bg-gray-50 text-gray-500 border-gray-200' : '';
-  if (!priority || !color) return null;
-  return <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${color}`}>{priority}</span>;
+function StatusPill({ status, raw }: { status: string; raw: string }) {
+  const cls = STATUS_COLORS[status] ?? 'bg-gray-200 text-gray-500';
+  const label = raw || 'Not Started';
+  return <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${cls}`}>{label}</span>;
 }
 
 export function ProjectPlanView() {
-  const [projects, setProjects] = useState<ProjectWithTasks[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastSync, setLastSync] = useState<Date | null>(null);
-  const { refetch: refetchBaseballCards } = useProjects();
+  const { items, loading, error, refetch } = usePomegranate();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [syncing, setSyncing] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchProjectsWithTasks();
-      // Normalize: projects with no category fall into Extraneous
-      // Sub-items (has parent_id) keep their category blank — they render under their parent.
-      // Top-level items with no category fall into Extraneous.
-      const normalized = data.map(p => ({
-        ...p,
-        category: p.parent_id ? (p.category?.trim() || '') : (p.category?.trim() || 'Extraneous'),
-      }));
-      setProjects(normalized);
-      setLastSync(new Date());
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const syncNotion = useCallback(async () => {
+  async function handleRefresh() {
     setSyncing(true);
-    setError(null);
-    try {
-      const { supabase } = await import('../../lib/supabase/client');
-      // Invoke edge function — runs server-side, no daemon required
-      const { error: fnErr } = await supabase.functions.invoke('notion-project-sync');
-      if (fnErr) throw new Error(fnErr.message);
-      // Re-fetch the now-updated projects from Supabase
-      const fresh = await fetchProjectsWithTasks();
-      setProjects(fresh.map(p => ({ ...p, category: p.parent_id ? (p.category?.trim() || '') : (p.category?.trim() || 'Extraneous') })));
-      setLastSync(new Date());
-      await refetchBaseballCards();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSyncing(false);
-    }
-  }, [refetchBaseballCards]);
+    await refetch();
+    setSyncing(false);
+  }
 
-  // Build children map: parentId → sub-items
-  const childrenByParent = projects.reduce<Record<string, ProjectWithTasks[]>>((acc, p) => {
-    if (p.parent_id) {
-      if (!acc[p.parent_id]) acc[p.parent_id] = [];
-      acc[p.parent_id].push(p);
-    }
-    return acc;
-  }, {});
+  if (loading) {
+    return (
+      <div className="flex min-h-[300px] items-center justify-center p-8 text-sm text-gray-400">
+        Loading project plan…
+      </div>
+    );
+  }
 
-  // Group by category — top-level items only (no parent_id)
-  const grouped = CATEGORY_ORDER.reduce<Record<string, ProjectWithTasks[]>>((acc, cat) => {
-    acc[cat] = projects.filter(p => !p.parent_id && p.category === cat);
-    return acc;
-  }, {});
+  if (error) {
+    return (
+      <div className="p-8">
+        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+          <strong>Error loading board:</strong> {error}
+        </div>
+      </div>
+    );
+  }
+
+  // Build group → items map
+  const byGroup: Record<string, typeof items> = {};
+  for (const item of items) {
+    if (!byGroup[item.groupId]) byGroup[item.groupId] = [];
+    byGroup[item.groupId].push(item);
+  }
 
   return (
-    <div className="flex h-screen flex-col bg-[#f5f6f8]">
+    <div className="p-4 sm:p-6">
       {/* Header */}
-      <div className="border-b border-gray-200 bg-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-[#224057]">Project Plan</h1>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Live from Notion · {projects.length} projects
-              {lastSync && <span> · Synced {lastSync.toLocaleTimeString()}</span>}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <a href={NOTION_DB_URL} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-500 hover:border-gray-300 hover:text-gray-700">
-              <ExternalLink className="h-3.5 w-3.5" /> Open in Notion
-            </a>
-            <button onClick={syncNotion} disabled={syncing || loading}
-              className="flex items-center gap-1.5 rounded-lg bg-[#224057] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1a3245] disabled:opacity-60 transition-colors">
-              <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Syncing...' : 'Sync Notion'}
-            </button>
-          </div>
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-bold text-[#224057]">Project Plan</h2>
+          <p className="text-xs text-gray-400">CMH-26-01-POM · May–Aug 2026 · {items.length} items</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <a
+            href={BOARD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50"
+          >
+            <ExternalLink size={12} /> Monday.com
+          </a>
+          <button
+            onClick={handleRefresh}
+            disabled={syncing}
+            className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} /> Refresh
+          </button>
         </div>
       </div>
 
-      {error && (
-        <div className="mx-6 mt-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />{error}
-        </div>
-      )}
+      {/* Groups */}
+      {GROUPS.map(group => {
+        const groupItems = byGroup[group.id] ?? [];
+        const isCollapsed = collapsed[group.id];
+        const headerColor = GROUP_COLORS[group.id] ?? '#224057';
 
-      {loading ? (
-        <div className="flex flex-1 items-center justify-center text-gray-400 text-sm">Loading…</div>
-      ) : (
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-14">
-          {CATEGORY_ORDER.map(cat => {
-            const items = grouped[cat] ?? [];
-            if (items.length === 0) return null;
-            const bg = GROUP_HEADER_BG[cat] ?? '#224057';
-            const isCollapsed = collapsed[cat];
-            const phaseCount = items.reduce((s, p) => s + (childrenByParent[p.id]?.length ?? 0), 0);
-            return (
-              <div key={cat}>
-                {/* Group header */}
-                <button onClick={() => setCollapsed(c => ({ ...c, [cat]: !c[cat] }))}
-                  className="flex w-full items-center gap-3 rounded-t-lg px-4 py-2.5 text-left transition-opacity hover:opacity-90"
-                  style={{ background: bg }}>
-                  {isCollapsed ? <ChevronRight className="h-4 w-4 text-white/70" /> : <ChevronDown className="h-4 w-4 text-white/70" />}
-                  <span className="text-sm font-bold text-white">{cat}</span>
-                  <span className="ml-auto rounded-full bg-white/20 px-2 py-0.5 text-xs text-white">{items.length} projects · {phaseCount} phases</span>
-                {/* phaseCount now counts Notion sub-items */}
-                </button>
+        return (
+          <div key={group.id} className="mb-4 overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+            {/* Group header */}
+            <button
+              onClick={() => setCollapsed(c => ({ ...c, [group.id]: !c[group.id] }))}
+              className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-white"
+              style={{ backgroundColor: headerColor }}
+            >
+              <span className="flex items-center gap-2">
+                {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                {group.label}
+                <span className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-normal">
+                  {groupItems.length}
+                </span>
+              </span>
+            </button>
 
-                {!isCollapsed && (
-                  <div className="rounded-b-lg border border-t-0 border-gray-200 bg-white overflow-hidden">
-                    {/* Column headers */}
-                    <div className="grid text-[10px] font-semibold uppercase tracking-wider text-gray-400 border-b border-gray-100 px-4 py-2"
-                      style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr' }}>
-                      <span>Project</span>
-                      <span>Status</span>
-                      <span>Priority</span>
-                      <span>Accountable</span>
-                      <span>Start</span>
-                      <span>Target</span>
-                    </div>
-
-                    {items.map(project => {
-                      const isExpanded = expandedItems.has(project.id);
-                      const subItems = childrenByParent[project.id] ?? [];
-                      const hasChildren = subItems.length > 0;
-                      return (
-                        <div key={project.id} className="border-b border-gray-50 last:border-0">
-                          {/* Parent row */}
-                          <div className="grid items-center px-4 py-2.5 hover:bg-gray-50 transition-colors cursor-pointer"
-                            style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr' }}
-                            onClick={() => setExpandedItems(s => { const n = new Set(s); n.has(project.id) ? n.delete(project.id) : n.add(project.id); return n; })}>
-                            <div className="flex items-center gap-2 min-w-0">
-                              {hasChildren
-                                ? (isExpanded ? <ChevronDown className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />)
-                                : <span className="w-3.5" />}
-                              <span className="truncate text-sm font-medium text-gray-900">{project.name}</span>
-                              {hasChildren && (
-                                <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500 flex-shrink-0">{subItems.length}</span>
-                              )}
-                            </div>
-                            <div><span className={`rounded px-2 py-0.5 text-xs font-medium ${statusStyle(project.mma_status)}`}>{project.mma_status || '—'}</span></div>
-                            <div><PriorityChip priority={project.mma_priority} /></div>
-                            <div className="truncate text-xs text-gray-600">{project.mma_accountable || '—'}</div>
-                            <div className="text-xs text-gray-500">{fmtDate(project.start_date)}</div>
-                            <div className="text-xs text-gray-500">{fmtDate(project.target_date)}</div>
-                          </div>
-
-                          {/* Notion sub-items */}
-                          {isExpanded && subItems.map(child => (
-                            <div key={child.id} className="grid items-center pl-10 pr-4 py-2 bg-gray-50/60 border-t border-gray-100"
-                              style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr' }}>
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-gray-300 text-xs flex-shrink-0">└</span>
-                                <span className="truncate text-xs text-gray-700">{child.name}</span>
-                              </div>
-                              <div><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${statusStyle(child.mma_status)}`}>{child.mma_status || '—'}</span></div>
-                              <div><PriorityChip priority={child.mma_priority} /></div>
-                              <div className="truncate text-xs text-gray-500">{child.mma_accountable || child.mma_responsible || '—'}</div>
-                              <div className="text-xs text-gray-400">{fmtDate(child.start_date)}</div>
-                              <div className="text-xs text-gray-400">{fmtDate(child.target_date)}</div>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+            {/* Items table */}
+            {!isCollapsed && (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                    <th className="px-4 py-2 text-left">Item</th>
+                    <th className="px-3 py-2 text-left">Status</th>
+                    <th className="px-3 py-2 text-left">Owner</th>
+                    <th className="px-3 py-2 text-left">Timeline</th>
+                    <th className="px-3 py-2 text-left">Type</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {groupItems.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-4 text-center text-xs text-gray-300">
+                        No items in this phase yet.
+                      </td>
+                    </tr>
+                  )}
+                  {groupItems.map((item, idx) => (
+                    <tr
+                      key={item.id}
+                      className={`border-b border-gray-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-pom-cream/30 transition-colors`}
+                    >
+                      <td className="px-4 py-3 text-sm text-gray-800">
+                        {item.name}
+                        {item.notes && (
+                          <p className="mt-0.5 text-[10px] text-gray-400 line-clamp-1">{item.notes}</p>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <StatusPill status={item.status} raw={item.statusRaw} />
+                      </td>
+                      <td className="px-3 py-3 text-xs text-gray-600 whitespace-nowrap">
+                        {item.owner || '—'}
+                      </td>
+                      <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">
+                        {item.startDate ? `${fmtDate(item.startDate)} – ${fmtDate(item.endDate)}` : '—'}
+                      </td>
+                      <td className="px-3 py-3 text-xs">
+                        {item.deliverable === 'Milestone' ? (
+                          <span className="rounded-full bg-pom-red/10 px-2 py-0.5 text-[10px] font-semibold text-pom-red">
+                            Milestone
+                          </span>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

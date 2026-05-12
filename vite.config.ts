@@ -4,5 +4,5 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/mma-tracker/',
+  base: '/cp-pomegranate-CMH-26-01-POM/',
 })

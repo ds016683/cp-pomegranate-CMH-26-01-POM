@@ -1,47 +1,69 @@
+// Simple passcode + email allowlist auth — no Supabase dependency
+// Credentials stored in VITE_CLIENT_ALLOWLIST and VITE_CLIENT_PASSCODE env vars
+
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { User, Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase/client';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: string | null;      // email address
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signOut: () => Promise<void>;
+  signIn: (email: string, passcode: string) => { error: string | null };
+  signOut: () => void;
 }
+
+const STORAGE_KEY = 'pom-auth-v1';
+const AUTH_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        if (event === 'INITIAL_SESSION') {
-          setLoading(false);
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const { email, expiresAt } = JSON.parse(raw);
+        if (Date.now() < expiresAt) {
+          setUser(email);
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
         }
       }
-    );
-    return () => { subscription.unsubscribe(); };
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    setLoading(false);
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
-  };
+  function signIn(email: string, passcode: string): { error: string | null } {
+    const allowlist = (import.meta.env.VITE_CLIENT_ALLOWLIST ?? '')
+      .split(',')
+      .map((e: string) => e.trim().toLowerCase());
+    const expected = (import.meta.env.VITE_CLIENT_PASSCODE ?? '').trim();
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
+    const emailLower = email.trim().toLowerCase();
+    if (!allowlist.includes(emailLower)) {
+      return { error: 'Email not authorized.' };
+    }
+    if (passcode.trim() !== expected) {
+      return { error: 'Incorrect passcode.' };
+    }
+
+    const payload = { email: emailLower, expiresAt: Date.now() + AUTH_TTL_MS };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    setUser(emailLower);
+    return { error: null };
+  }
+
+  function signOut() {
+    localStorage.removeItem(STORAGE_KEY);
+    setUser(null);
+  }
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -30,6 +30,7 @@ jobs:
         env:
           VITE_MONDAY_API_KEY: ${{ secrets.VITE_MONDAY_API_KEY }}
           VITE_CLIENT_PASSCODE: ${{ secrets.VITE_CLIENT_PASSCODE }}
+          VITE_CLIENT_ALLOWLIST: ${{ secrets.VITE_CLIENT_ALLOWLIST }}
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
         with:

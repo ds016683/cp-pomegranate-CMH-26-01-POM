@@ -5,8 +5,9 @@ import { AuthPage } from './components/auth/AuthPage';
 import { ProjectPlanView } from './components/project-plan/ProjectPlanView';
 import { PomegranateCardView } from './components/baseball-card/PomegranateCardView';
 import { PomGanttView } from './components/gantt/PomGanttView';
+import { OdinChat } from './components/odin/OdinChat';
 
-type AppView = 'plan' | 'cards' | 'gantt';
+type AppView = 'plan' | 'cards' | 'gantt' | 'odin';
 
 function PomegranateIcon({ size = 24 }: { size?: number }) {
   return (
@@ -27,10 +28,11 @@ function PomegranateIcon({ size = 24 }: { size?: number }) {
   );
 }
 
-const NAV_ITEMS: { id: AppView; label: string }[] = [
+const NAV_ITEMS: { id: AppView; label: string; bottom?: boolean }[] = [
   { id: 'plan',  label: 'Project Plan' },
   { id: 'cards', label: 'Baseball Cards' },
   { id: 'gantt', label: 'Gantt' },
+  { id: 'odin',  label: '✦ Ask Odin', bottom: true },
 ];
 
 function AppContent() {
@@ -58,8 +60,9 @@ function AppContent() {
             >Sign out</button>
           </div>
         </div>
-        <nav className="flex gap-0 border-t border-white/5 px-6">
-          {NAV_ITEMS.map(n => (
+        <nav className="flex gap-0 border-t border-white/5 px-6 items-center">
+          {NAV_ITEMS.filter(n => !n.bottom).map(n => (
+
             <button
               key={n.id}
               onClick={() => setView(n.id)}
@@ -70,6 +73,20 @@ function AppContent() {
               }`}
             >{n.label}</button>
           ))}
+          {/* Odin — pinned to right */}
+          <div className="ml-auto">
+            {NAV_ITEMS.filter(n => n.bottom).map(n => (
+              <button
+                key={n.id}
+                onClick={() => setView(n.id)}
+                className={`px-4 py-2.5 text-xs font-semibold transition border-b-2 ${
+                  view === n.id
+                    ? 'border-[#8B1E2D] text-[#c0392b]'
+                    : 'border-transparent text-white/40 hover:text-[#c0392b]'
+                }`}
+              >{n.label}</button>
+            ))}
+          </div>
         </nav>
       </header>
 
@@ -78,6 +95,7 @@ function AppContent() {
           {view === 'plan'  && <ProjectPlanView />}
           {view === 'cards' && <PomegranateCardView />}
           {view === 'gantt' && <PomGanttView />}
+          {view === 'odin'  && <OdinChat />}
         </PomegranateProvider>
       </main>
     </div>

@@ -31,6 +31,8 @@ jobs:
           VITE_MONDAY_API_KEY: ${{ secrets.VITE_MONDAY_API_KEY }}
           VITE_CLIENT_PASSCODE: ${{ secrets.VITE_CLIENT_PASSCODE }}
           VITE_CLIENT_ALLOWLIST: ${{ secrets.VITE_CLIENT_ALLOWLIST }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
         with:

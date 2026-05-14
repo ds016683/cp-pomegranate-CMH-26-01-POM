@@ -1,20 +1,22 @@
 import { useState } from 'react';
-import { LayoutGrid, LogOut, Menu, X, GanttChart, FileText } from 'lucide-react';
+import { LayoutGrid, LogOut, Menu, X, GanttChart, FileText, Sparkles } from 'lucide-react';
 import thsLogo from '../../assets/ths-logo.png';
 import { useAuth } from '../../contexts/AuthContext';
 
-export type AppView = 'project-plan' | 'tracker' | 'timeline';
+export type AppView = 'plan' | 'cards' | 'gantt' | 'odin';
 
 interface NavItem {
   id: AppView;
   label: string;
   icon: React.ElementType;
+  dividerBefore?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'project-plan', label: 'Project Plan',   icon: FileText },
-  { id: 'timeline',     label: 'Gantt Chart',    icon: GanttChart },
-  { id: 'tracker',      label: 'Baseball Cards', icon: LayoutGrid },
+  { id: 'plan',  label: 'Project Plan',   icon: FileText },
+  { id: 'gantt', label: 'Gantt Chart',    icon: GanttChart },
+  { id: 'cards', label: 'Baseball Cards', icon: LayoutGrid },
+  { id: 'odin',  label: 'Ask Odin',       icon: Sparkles, dividerBefore: true },
 ];
 
 // Pomegranate SVG icon
@@ -74,18 +76,22 @@ export function AppDrawer({
             const Icon = item.icon;
             const active = activeView === item.id;
             return (
-              <button
-                key={item.id}
-                onClick={() => { onViewChange(item.id); setOpen(false); }}
-                className={`mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
-                  active
-                    ? 'bg-[#8B1E2D] font-semibold text-white'
-                    : 'text-white/60 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                <Icon size={16} />
-                {item.label}
-              </button>
+              <div key={item.id}>
+                {item.dividerBefore && <div className="my-2 border-t border-white/10" />}
+                <button
+                  onClick={() => { onViewChange(item.id); setOpen(false); }}
+                  className={`mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
+                    active
+                      ? 'bg-[#8B1E2D] font-semibold text-white'
+                      : item.id === 'odin'
+                        ? 'text-[#c0392b]/70 hover:bg-white/5 hover:text-[#c0392b]'
+                        : 'text-white/60 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <Icon size={16} />
+                  {item.label}
+                </button>
+              </div>
             );
           })}
         </nav>

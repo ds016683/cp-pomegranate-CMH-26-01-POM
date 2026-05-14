@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Bot } from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase/client';
 
 interface Message {

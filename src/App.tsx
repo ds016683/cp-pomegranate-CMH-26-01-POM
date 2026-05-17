@@ -18,12 +18,12 @@ function AppContent() {
   return (
     <div className="flex h-screen overflow-hidden bg-[#f7f9fc] text-gray-900">
       <AppDrawer activeView={view} onViewChange={setView} />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 flex flex-col min-h-0">
         <PomegranateProvider>
-          {view === 'plan'  && <ProjectPlanView />}
-          {view === 'cards' && <PomegranateCardView />}
-          {view === 'gantt' && <PomGanttView />}
-          {view === 'odin'  && <OdinChat />}
+          {view === 'plan'  && <div className="flex-1 overflow-y-auto"><ProjectPlanView /></div>}
+          {view === 'cards' && <div className="flex-1 overflow-y-auto"><PomegranateCardView /></div>}
+          {view === 'gantt' && <div className="flex-1 overflow-y-auto"><PomGanttView /></div>}
+          {view === 'odin'  && <div className="flex flex-col flex-1 min-h-0"><OdinChat /></div>}
         </PomegranateProvider>
       </main>
     </div>

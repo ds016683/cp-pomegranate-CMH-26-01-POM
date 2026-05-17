@@ -85,23 +85,23 @@ export function OdinChat() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-white">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-white/10 px-6 py-4">
+      <div className="flex items-center gap-3 border-b border-gray-100 px-6 py-4">
         <OdinIcon size={32} />
         <div>
-          <h2 className="text-sm font-bold text-white">Ask Odin</h2>
-          <p className="text-[10px] text-white/40">Strategic intelligence · claude-opus-4-5 · CMH-26-01-POM</p>
+          <h2 className="text-sm font-bold text-[#1a2e45]">Ask Odin</h2>
+          <p className="text-[10px] text-gray-400">Strategic intelligence · claude-opus-4-5 · CMH-26-01-POM</p>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-[#f7f9fc]">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center text-white/30 gap-3 pt-16">
+          <div className="flex flex-col items-center justify-center h-full text-center gap-3 pt-16">
             <OdinIcon size={48} />
-            <p className="text-sm font-medium text-white/50">Odin is ready.</p>
-            <p className="text-xs max-w-xs">Ask anything about the Pomegranate Market FIM engagement — strategy, payers, deliverables, or the evidence base.</p>
+            <p className="text-sm font-medium text-[#1a2e45]">Odin is ready.</p>
+            <p className="text-xs text-gray-400 max-w-xs">Ask anything about the Pomegranate Market FIM engagement — strategy, payers, deliverables, or the evidence base.</p>
           </div>
         )}
         {messages.map((m, i) => (
@@ -113,7 +113,7 @@ export function OdinChat() {
               className={`max-w-[75%] rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
                 m.role === 'user'
                   ? 'bg-[#8B1E2D] text-white'
-                  : 'bg-white/5 text-white/90 border border-white/10'
+                  : 'bg-white text-gray-800 border border-gray-200 shadow-sm'
               }`}
             >
               {m.content}
@@ -123,13 +123,13 @@ export function OdinChat() {
         {loading && (
           <div className="flex gap-3 justify-start">
             <div className="mt-1 shrink-0"><OdinIcon size={20} /></div>
-            <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-              <Loader2 size={16} className="animate-spin text-white/40" />
+            <div className="bg-white border border-gray-200 shadow-sm rounded-xl px-4 py-3">
+              <Loader2 size={16} className="animate-spin text-gray-400" />
             </div>
           </div>
         )}
         {error && (
-          <div className="rounded-lg bg-red-900/30 border border-red-500/30 px-4 py-3 text-xs text-red-300">
+          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-xs text-red-600">
             ⚠ {error}
           </div>
         )}
@@ -137,7 +137,7 @@ export function OdinChat() {
       </div>
 
       {/* Input */}
-      <div className="border-t border-white/10 px-6 py-4">
+      <div className="border-t border-gray-100 bg-white px-6 py-4">
         <div className="flex gap-2">
           <textarea
             value={input}
@@ -145,7 +145,7 @@ export function OdinChat() {
             onKeyDown={handleKey}
             placeholder="Ask Odin about the engagement…"
             rows={2}
-            className="flex-1 resize-none rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder-white/30 focus:border-[#8B1E2D] focus:outline-none transition"
+            className="flex-1 resize-none rounded-lg bg-gray-50 border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#1a2e45] focus:outline-none transition"
           />
           <button
             onClick={send}
@@ -155,7 +155,7 @@ export function OdinChat() {
             <Send size={16} />
           </button>
         </div>
-        <p className="mt-1.5 text-[10px] text-white/20">Enter to send · Shift+Enter for newline</p>
+        <p className="mt-1.5 text-[10px] text-gray-300">Enter to send · Shift+Enter for newline</p>
       </div>
     </div>
   );

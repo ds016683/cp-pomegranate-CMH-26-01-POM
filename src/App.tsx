@@ -16,7 +16,7 @@ function AppContent() {
   if (!user) return <AuthPage />;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0d1a26] text-white">
+    <div className="flex h-screen overflow-hidden bg-[#f7f9fc] text-gray-900">
       <AppDrawer activeView={view} onViewChange={setView} />
       <main className="flex-1 overflow-y-auto">
         <PomegranateProvider>

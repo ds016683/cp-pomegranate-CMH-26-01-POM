@@ -37,21 +37,21 @@ export function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0d1a26] px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#16232f] p-8 shadow-2xl">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#f7f9fc] px-4">
+      <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">
         {/* Logos */}
         <div className="mb-8 flex items-center justify-center gap-4">
           <PomegranateIcon />
-          <div className="h-8 w-px bg-white/20" />
-          <img src={thsLogo} alt="Third Horizon Strategies" className="h-8 w-auto brightness-0 invert" />
+          <div className="h-8 w-px bg-gray-200" />
+          <img src={thsLogo} alt="Third Horizon Strategies" className="h-8 w-auto" />
         </div>
 
-        <h1 className="mb-1 text-center text-lg font-bold text-white">Pomegranate Market × Third Horizon</h1>
-        <p className="mb-6 text-center text-xs text-white/40">Client Portal — Sign in to continue</p>
+        <h1 className="mb-1 text-center text-lg font-bold text-[#1a2e45]">Pomegranate Market × Third Horizon</h1>
+        <p className="mb-6 text-center text-xs text-gray-400">Client Portal — Sign in to continue</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-medium text-white/50">Email</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">Email</label>
             <input
               type="email"
               value={email}
@@ -59,11 +59,11 @@ export function AuthPage() {
               required
               autoComplete="email"
               placeholder="you@example.com"
-              className="w-full rounded-lg border border-white/10 bg-[#0d1a26] px-3 py-2.5 text-sm text-white placeholder-white/20 focus:border-pom-red focus:outline-none"
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-300 focus:border-[#1a2e45] focus:outline-none"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-white/50">Passcode</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">Passcode</label>
             <input
               type="password"
               value={passcode}
@@ -71,7 +71,7 @@ export function AuthPage() {
               required
               autoComplete="current-password"
               placeholder="••••••••"
-              className="w-full rounded-lg border border-white/10 bg-[#0d1a26] px-3 py-2.5 text-sm text-white placeholder-white/20 focus:border-pom-red focus:outline-none"
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-300 focus:border-[#1a2e45] focus:outline-none"
             />
           </div>
 
@@ -88,7 +88,7 @@ export function AuthPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-[10px] text-white/20">
+        <p className="mt-6 text-center text-[10px] text-gray-300">
           Contract CMH-26-01-POM · May–Aug 2026
         </p>
       </div>

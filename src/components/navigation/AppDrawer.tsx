@@ -50,26 +50,26 @@ export function AppDrawer({
       {/* Mobile toggle */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="fixed left-3 top-3 z-50 rounded-lg bg-[#8B1E2D] p-1.5 text-white shadow md:hidden"
+        className="fixed left-3 top-3 z-50 rounded-lg bg-[#1a2e45] p-1.5 text-white shadow md:hidden"
       >
         {open ? <X size={18} /> : <Menu size={18} />}
       </button>
 
       <aside
-        className={`${open ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-40 flex w-56 flex-col bg-[#16232f] transition-transform duration-200 md:relative md:translate-x-0`}
+        className={`${open ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-40 flex w-56 flex-col bg-[#1a2e45] transition-transform duration-200 md:relative md:translate-x-0`}
       >
         {/* Header */}
-        <div className="flex flex-col items-center gap-2 border-b border-white/10 px-4 py-5">
+        <div className="flex flex-col items-center gap-2 border-b border-white/[0.08] px-4 py-5">
           <PomegranateIcon size={36} />
           <div className="text-center">
             <p className="text-xs font-bold leading-tight text-white">Pomegranate Market</p>
-            <p className="text-[10px] text-white/40">× Third Horizon</p>
+            <p className="text-[10px] text-white/50">× Third Horizon</p>
           </div>
         </div>
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto p-3">
-          <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/30">
+          <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/40">
             Engagement
           </p>
           {NAV_ITEMS.map(item => {
@@ -82,9 +82,9 @@ export function AppDrawer({
                   onClick={() => { onViewChange(item.id); setOpen(false); }}
                   className={`mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
                     active
-                      ? 'bg-[#8B1E2D] font-semibold text-white'
+                      ? 'bg-white/10 font-semibold text-white'
                       : item.id === 'odin'
-                        ? 'text-[#c0392b]/70 hover:bg-white/5 hover:text-[#c0392b]'
+                        ? 'text-white/50 hover:bg-white/5 hover:text-white'
                         : 'text-white/60 hover:bg-white/5 hover:text-white'
                   }`}
                 >
@@ -97,9 +97,9 @@ export function AppDrawer({
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-white/10 p-4">
-          <img src={thsLogo} alt="Third Horizon Strategies" className="mb-3 h-5 w-auto brightness-0 invert opacity-50" />
-          <p className="mb-2 truncate text-[10px] text-white/30">{user}</p>
+        <div className="border-t border-white/[0.08] p-4">
+          <img src={thsLogo} alt="Third Horizon Strategies" className="mb-3 h-5 w-auto brightness-0 invert opacity-60" />
+          <p className="mb-2 truncate text-[10px] text-white/40">{user}</p>
           <button
             onClick={signOut}
             className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70"

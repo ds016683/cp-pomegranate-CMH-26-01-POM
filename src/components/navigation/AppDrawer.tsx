@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { LayoutGrid, LogOut, Menu, X, GanttChart, FileText, Sparkles } from 'lucide-react';
 import thsLogo from '../../assets/ths-logo.png';
+import pomIcon from '../../assets/pom-icon.png';
 import { useAuth } from '../../contexts/AuthContext';
 
 export type AppView = 'plan' | 'cards' | 'gantt' | 'odin';
@@ -19,21 +20,6 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'odin',  label: 'Ask Odin',       icon: Sparkles, dividerBefore: true },
 ];
 
-// Pomegranate SVG icon
-function PomegranateIcon({ size = 24 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 40 40" style={{ width: size, height: size }} fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="22" r="14" fill="#8B1E2D" />
-      <circle cx="20" cy="22" r="10" fill="#c0392b" />
-      <circle cx="17" cy="20" r="2" fill="#fde8e8" />
-      <circle cx="23" cy="20" r="2" fill="#fde8e8" />
-      <circle cx="20" cy="25" r="2" fill="#fde8e8" />
-      <circle cx="15" cy="25" r="1.5" fill="#fde8e8" />
-      <circle cx="25" cy="25" r="1.5" fill="#fde8e8" />
-      <path d="M14 11 Q16 6 20 8 Q24 6 26 11 Q23 9 20 10 Q17 9 14 11Z" fill="#5a1020" />
-    </svg>
-  );
-}
 
 export function AppDrawer({
   activeView,
@@ -59,12 +45,10 @@ export function AppDrawer({
         className={`${open ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-40 flex w-56 flex-col bg-[#1a2e45] transition-transform duration-200 md:relative md:translate-x-0`}
       >
         {/* Header */}
-        <div className="flex flex-col items-center gap-2 border-b border-white/[0.08] px-4 py-5">
-          <PomegranateIcon size={36} />
-          <div className="text-center">
-            <p className="text-xs font-bold leading-tight text-white">Pomegranate Market</p>
-            <p className="text-[10px] text-white/50">× Third Horizon</p>
-          </div>
+        <div className="flex items-center justify-center gap-3 border-b border-white/[0.08] px-4 py-4">
+          <img src={pomIcon} alt="Pomegranate Market" className="h-8 w-auto brightness-0 invert" />
+          <div className="h-6 w-px bg-white/20" />
+          <img src={thsLogo} alt="Third Horizon Strategies" className="h-5 w-auto brightness-0 invert opacity-80" />
         </div>
 
         {/* Nav */}

@@ -1,24 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import thsLogo from '../../assets/ths-logo.png';
-
-// Pomegranate SVG icon (inline — swap for real asset when David supplies)
-function PomegranateIcon() {
-  return (
-    <svg viewBox="0 0 40 40" className="h-9 w-9" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="22" r="14" fill="#8B1E2D" />
-      <circle cx="20" cy="22" r="10" fill="#c0392b" />
-      {/* seeds */}
-      <circle cx="17" cy="20" r="2" fill="#fde8e8" />
-      <circle cx="23" cy="20" r="2" fill="#fde8e8" />
-      <circle cx="20" cy="25" r="2" fill="#fde8e8" />
-      <circle cx="15" cy="25" r="1.5" fill="#fde8e8" />
-      <circle cx="25" cy="25" r="1.5" fill="#fde8e8" />
-      {/* crown */}
-      <path d="M14 11 Q16 6 20 8 Q24 6 26 11 Q23 9 20 10 Q17 9 14 11Z" fill="#5a1020" />
-    </svg>
-  );
-}
+import pomLogoFull from '../../assets/pom-logo-full.png';
 
 export function AuthPage() {
   const { signIn } = useAuth();
@@ -40,13 +23,12 @@ export function AuthPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#f7f9fc] px-4">
       <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">
         {/* Logos */}
-        <div className="mb-8 flex items-center justify-center gap-4">
-          <PomegranateIcon />
-          <div className="h-8 w-px bg-gray-200" />
+        <div className="mb-8 flex items-center justify-center gap-5">
+          <img src={pomLogoFull} alt="Pomegranate Market" className="h-14 w-auto" />
+          <div className="h-10 w-px bg-gray-200" />
           <img src={thsLogo} alt="Third Horizon Strategies" className="h-8 w-auto" />
         </div>
 
-        <h1 className="mb-1 text-center text-lg font-bold text-[#1a2e45]">Pomegranate Market × Third Horizon</h1>
         <p className="mb-6 text-center text-xs text-gray-400">Client Portal — Sign in to continue</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">

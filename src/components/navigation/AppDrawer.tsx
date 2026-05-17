@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { LayoutGrid, LogOut, Menu, X, GanttChart, FileText, Sparkles } from 'lucide-react';
 import thsLogo from '../../assets/ths-logo.png';
-import pomIcon from '../../assets/pom-icon.png';
+import pomLogoFull from '../../assets/pom-logo-full.png';
 import { useAuth } from '../../contexts/AuthContext';
 
 export type AppView = 'plan' | 'cards' | 'gantt' | 'odin';
@@ -46,7 +46,7 @@ export function AppDrawer({
       >
         {/* Header */}
         <div className="flex items-center justify-center gap-3 border-b border-white/[0.08] px-4 py-4">
-          <img src={pomIcon} alt="Pomegranate Market" className="h-8 w-auto brightness-0 invert" />
+          <img src={pomLogoFull} alt="Pomegranate Market" className="h-8 w-auto brightness-0 invert" />
           <div className="h-6 w-px bg-white/20" />
           <img src={thsLogo} alt="Third Horizon Strategies" className="h-5 w-auto brightness-0 invert opacity-80" />
         </div>

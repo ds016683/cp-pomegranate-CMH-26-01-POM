@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { LayoutGrid, LogOut, Menu, X, GanttChart, FileText, Sparkles } from 'lucide-react';
 import thsLogo from '../../assets/ths-logo.png';
-import pomLogoFull from '../../assets/pom-logo-full.png';
+// pom-icon PNG has white bg — using inline SVG for sidebar instead
 import { useAuth } from '../../contexts/AuthContext';
 
 export type AppView = 'plan' | 'cards' | 'gantt' | 'odin';
@@ -46,7 +46,22 @@ export function AppDrawer({
       >
         {/* Header */}
         <div className="flex items-center justify-center gap-3 border-b border-white/[0.08] px-4 py-4">
-          <img src={pomLogoFull} alt="Pomegranate Market" className="h-8 w-auto brightness-0 invert" />
+          {/* Pomegranate silhouette — white on transparent, no bg artifact */}
+          <svg viewBox="0 0 40 44" className="h-8 w-auto flex-shrink-0" fill="white" xmlns="http://www.w3.org/2000/svg">
+            {/* Crown/stem */}
+            <path d="M16 10 Q17 5 20 7 Q23 5 24 10 Q22 8.5 20 9 Q18 8.5 16 10Z" />
+            {/* Fruit body */}
+            <circle cx="20" cy="23" r="13" />
+            {/* Leaves */}
+            <ellipse cx="11" cy="33" rx="7" ry="4" transform="rotate(-35 11 33)" fillOpacity="0.7" />
+            <ellipse cx="29" cy="33" rx="7" ry="4" transform="rotate(35 29 33)" fillOpacity="0.7" />
+            {/* Seed cutouts (dark) */}
+            <circle cx="17" cy="21" r="2" fill="#1a2e45" />
+            <circle cx="23" cy="21" r="2" fill="#1a2e45" />
+            <circle cx="20" cy="26" r="2" fill="#1a2e45" />
+            <circle cx="14.5" cy="26" r="1.5" fill="#1a2e45" />
+            <circle cx="25.5" cy="26" r="1.5" fill="#1a2e45" />
+          </svg>
           <div className="h-6 w-px bg-white/20" />
           <img src={thsLogo} alt="Third Horizon Strategies" className="h-5 w-auto brightness-0 invert opacity-80" />
         </div>
